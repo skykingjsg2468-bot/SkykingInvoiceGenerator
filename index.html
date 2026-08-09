@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyKing Courier — Billing</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/invoice.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="16" stroke="#1c5f8a" stroke-width="2"/>
+        <path d="M8 20 L18 10 L18 15 L26 15 L26 19 L18 19 L18 24 Z" fill="#1c5f8a"/>
+      </svg>
+      <div>
+        <div class="brand-name">Billing Console</div>
+        <div class="brand-sub">Courier invoice replica tool</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active" data-view="view-new-invoice">New Invoice</button>
+      <button class="nav-btn" data-view="view-history">Invoice History</button>
+      <button class="nav-btn" data-view="view-customers">Customers &amp; Rates</button>
+      <button class="nav-btn" data-view="view-settings">Company Settings</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="btn-seed-demo" class="btn-ghost small">Load sample data</button>
+      <button id="btn-export-data" class="btn-ghost small">Export backup (.json)</button>
+      <label class="btn-ghost small file-label">
+        Import backup
+        <input type="file" id="input-import-data" accept="application/json" hidden>
+      </label>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- ---------- NEW INVOICE VIEW ---------- -->
+    <section id="view-new-invoice" class="view active">
+      <header class="view-header">
+        <h1>New Invoice</h1>
+        <p>Pick a customer, add consignments, and generate a print-ready bill.</p>
+      </header>
+
+      <div class="card">
+        <div class="grid-3">
+          <div class="field">
+            <label>Invoice Type</label>
+            <div class="pill-toggle">
+              <button type="button" id="btn-type-tax" class="pill">Tax Invoice</button>
+              <button type="button" id="btn-type-nontax" class="pill selected">Non-Tax Invoice</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="inv-customer">Customer</label>
+            <select id="inv-customer"></select>
+          </div>
+          <div class="field">
+            <label for="inv-branch">Branch (issuing branch)</label>
+            <input type="text" id="inv-branch" placeholder="e.g. JHARSUGUDA">
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="field">
+            <label for="inv-number">Invoice No.</label>
+            <input type="text" id="inv-number">
+          </div>
+          <div class="field">
+            <label for="inv-date">Invoice Date</label>
+            <input type="date" id="inv-date">
+          </div>
+          <div class="field">
+            <label for="inv-state">State (as on bill)</label>
+            <input type="text" id="inv-state" placeholder="e.g. ODISHA (21)">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header-row">
+          <h2>Consignments</h2>
+          <button id="btn-add-row" class="btn-primary small">+ Add Row</button>
+        </div>
+        <div class="table-wrap">
+          <table id="items-table" class="editable-table">
+            <thead>
+              <tr>
+                <th style="width:36px;">S.No</th>
+                <th style="width:120px;">Date</th>
+                <th style="width:140px;">Consignment No.</th>
+                <th>Destination</th>
+                <th>Remarks</th>
+                <th style="width:90px;">Weight (KG)</th>
+                <th style="width:110px;">Amount (₹)</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="items-tbody"></tbody>
+          </table>
+        </div>
+        <p class="hint">Amount auto-fills from the customer's quoted rate for that destination &amp; weight slab — you can still edit it by hand.</p>
+      </div>
+
+      <div class="card totals-card">
+        <div class="totals-row"><span>Total Amount</span><strong id="calc-total">₹ 0</strong></div>
+        <div class="totals-row"><span>Round Off</span>
+          <input type="number" id="inv-roundoff" value="0" step="0.01" class="roundoff-input">
+        </div>
+        <div class="totals-row net"><span>Net Billing Amount</span><strong id="calc-net">₹ 0</strong></div>
+      </div>
+
+      <div class="action-row">
+        <button id="btn-preview" class="btn-secondary">Preview</button>
+        <button id="btn-save-invoice" class="btn-primary">Save &amp; Generate Bill</button>
+      </div>
+    </section>
+
+    <!-- ---------- HISTORY VIEW ---------- -->
+    <section id="view-history" class="view">
+      <header class="view-header">
+        <h1>Invoice History</h1>
+        <p>Every saved bill lives here. Reopen any of them to reprint or export as PDF.</p>
+      </header>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="plain-table">
+            <thead>
+              <tr><th>Invoice No.</th><th>Date</th><th>Customer</th><th>Type</th><th>Net Amount</th><th></th></tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+        <p id="history-empty" class="hint" hidden>No invoices saved yet. Generate one from "New Invoice".</p>
+      </div>
+    </section>
+
+    <!-- ---------- CUSTOMERS & RATES VIEW ---------- -->
+    <section id="view-customers" class="view">
+      <header class="view-header">
+        <h1>Customers &amp; Rates</h1>
+        <p>Store each customer's billing details and their destination-wise quote, so amounts calculate automatically.</p>
+      </header>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header-row">
+            <h2>Customers</h2>
+            <button id="btn-new-customer" class="btn-primary small">+ New Customer</button>
+          </div>
+          <div class="table-wrap">
+            <table class="plain-table">
+              <thead><tr><th>Name</th><th>Code</th><th>City</th><th></th></tr></thead>
+              <tbody id="customers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="customer-editor" hidden>
+          <div class="card-header-row">
+            <h2 id="customer-editor-title">Customer Details</h2>
+            <button id="btn-delete-customer" class="btn-danger small">Delete</button>
+          </div>
+
+          <div class="grid-2">
+            <div class="field"><label>Legal / Display Name</label><input type="text" id="cust-name" placeholder="e.g. BANK OF MAHARASHTRA"></div>
+            <div class="field"><label>Customer Code</label><input type="text" id="cust-code" placeholder="e.g. SK18651"></div>
+            <div class="field"><label>Customer GSTIN</label><input type="text" id="cust-gstn" placeholder="NA if not registered"></div>
+            <div class="field"><label>Default Branch on Bill</label><input type="text" id="cust-branch" placeholder="e.g. JHARSUGUDA"></div>
+            <div class="field"><label>Address Line</label><input type="text" id="cust-address" placeholder="e.g. M B ROAD"></div>
+            <div class="field"><label>City / Pincode</label><input type="text" id="cust-city" placeholder="e.g. JHARSUGUDA- 768201, OD"></div>
+            <div class="field"><label>State (with code)</label><input type="text" id="cust-state" placeholder="e.g. ODISHA (21)"></div>
+          </div>
+
+          <hr>
+
+          <div class="card-header-row">
+            <h3>Quoted Rates by Destination</h3>
+            <button id="btn-add-quote" class="btn-secondary small">+ Add Destination</button>
+          </div>
+          <p class="hint">Add one or more weight slabs per destination. The invoice picks the first slab whose "up to" weight covers the consignment. If weight exceeds every slab, the extra-per-KG rate (optional) applies on top of the last slab's rate.</p>
+          <div id="quotes-list"></div>
+
+          <div class="action-row">
+            <button id="btn-save-customer" class="btn-primary">Save Customer</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- SETTINGS VIEW ---------- -->
+    <section id="view-settings" class="view">
+      <header class="view-header">
+        <h1>Company Settings</h1>
+        <p>Your letterhead, PAN/UDYAM/GST, bank details and invoice footer text — used on every bill.</p>
+      </header>
+
+      <div class="card">
+        <h2>Letterhead</h2>
+        <div class="grid-2">
+          <div class="field"><label>Company Name</label><input type="text" id="set-company-name" placeholder="SKYKING COURIER SERVICE"></div>
+          <div class="field"><label>Branch label shown in name, e.g. (JHARSUGUDA)</label><input type="text" id="set-branch-label" placeholder="JHARSUGUDA"></div>
+          <div class="field full"><label>Address</label><input type="text" id="set-address" placeholder="MANGAL BAZAR ROAD, NEAR DR P K JAIN CLINIC,, JHARSUGUDA - 768201, OD"></div>
+          <div class="field"><label>Phone number(s)</label><input type="text" id="set-phone" placeholder="9776072953 9437053234 9337053717"></div>
+          <div class="field"><label>PAN No.</label><input type="text" id="set-pan" placeholder="AJVPP8853E"></div>
+          <div class="field"><label>UDYAM No.</label><input type="text" id="set-udyam" placeholder="UDYAM-OD-14-0003850"></div>
+          <div class="field"><label>GSTIN (only shown on Tax Invoices)</label><input type="text" id="set-gstin" placeholder="e.g. 21XXXXX0000X1Z5"></div>
+          <div class="field"><label>Tagline</label><input type="text" id="set-tagline" placeholder="Your Delivery Partner"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Bank &amp; Tax Details</h2>
+        <div class="grid-2">
+          <div class="field"><label>Bank Name</label><input type="text" id="set-bank-name" placeholder="BANK OF MAHARASHTRA"></div>
+          <div class="field"><label>Account No.</label><input type="text" id="set-account-no" placeholder="60281527573"></div>
+          <div class="field"><label>IFSC Code</label><input type="text" id="set-ifsc" placeholder="MAHB0001700"></div>
+          <div class="field"><label>SAC Code / Description</label><input type="text" id="set-sac" placeholder="996812- COURIER SERVICE"></div>
+          <div class="field full"><label>"In Favour Of" name</label><input type="text" id="set-favour" placeholder="SKYKING COURIER SERVICE"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Footer Notes</h2>
+        <p class="hint">One note per line — printed at the bottom of every bill, numbered automatically.</p>
+        <textarea id="set-notes" rows="6"></textarea>
+      </div>
+
+      <div class="card">
+        <h2>Invoice Numbering</h2>
+        <div class="grid-3">
+          <div class="field"><label>Next Invoice Prefix</label><input type="text" id="set-inv-prefix" placeholder="e.g. JHARAUG26"></div>
+          <div class="field"><label>Next Running Number</label><input type="number" id="set-inv-seq" min="1" step="1"></div>
+          <div class="field"><label>Sequence Digits</label><input type="number" id="set-inv-padding" min="1" max="8" step="1"></div>
+        </div>
+        <p class="hint">The next invoice number will look like: <strong id="inv-number-preview">—</strong></p>
+      </div>
+
+      <div class="action-row">
+        <button id="btn-save-settings" class="btn-primary">Save Settings</button>
+        <span id="settings-saved-msg" class="saved-msg" hidden>Saved ✓</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ INVOICE TYPE MODAL ============ -->
+<div id="modal-invoice-type" class="modal-overlay" hidden>
+  <div class="modal">
+    <h2>What kind of bill is this?</h2>
+    <p>This decides whether SkyKing's own GSTIN appears on the letterhead.</p>
+    <div class="modal-actions">
+      <button id="modal-btn-tax" class="btn-secondary">Tax Invoice</button>
+      <button id="modal-btn-nontax" class="btn-primary">Non-Tax Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRINT PREVIEW MODAL ============ -->
+<div id="modal-preview" class="modal-overlay" hidden>
+  <div class="modal modal-wide">
+    <div class="modal-preview-toolbar no-print">
+      <button id="btn-close-preview" class="btn-ghost small">← Back to edit</button>
+      <div>
+        <button id="btn-print" class="btn-secondary small">Print / Save as PDF</button>
+      </div>
+    </div>
+    <div id="invoice-render-target"></div>
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/numberToWords.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
