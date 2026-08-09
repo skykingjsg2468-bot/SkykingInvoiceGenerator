@@ -297,6 +297,9 @@ table { width: 100%; border-collapse: collapse; }
   z-index: 100;
   padding: 24px;
 }
+.modal-overlay[hidden] {
+  display: none;
+}
 .modal {
   background: #fff;
   border-radius: 12px;
