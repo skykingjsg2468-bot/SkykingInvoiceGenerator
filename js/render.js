@@ -25,9 +25,16 @@ function fmtMoney(n) {
 function logoSVG() {
   return `
   <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="28" cy="28" r="26" stroke="#1c5f8a" stroke-width="2.5"/>
-    <path d="M14 33 L30 16 L30 23 L42 23 L42 29 L30 29 L30 36 Z" fill="#1c5f8a"/>
+    <circle cx="28" cy="28" r="26" stroke="#000" stroke-width="2"/>
+    <path d="M14 33 L30 16 L30 23 L42 23 L42 29 L30 29 L30 36 Z" fill="#000"/>
   </svg>`;
+}
+
+function logoMarkup(company) {
+  if (company.logoDataUrl) {
+    return `<img src="${company.logoDataUrl}" alt="logo" style="max-height:64px;max-width:130px;object-fit:contain;">`;
+  }
+  return logoSVG();
 }
 
 function renderInvoiceHTML({ company, customer, invoice }) {
@@ -66,7 +73,7 @@ function renderInvoiceHTML({ company, customer, invoice }) {
   return `
   <div class="invoice-sheet">
     <div class="inv-head">
-      <div class="inv-logo">${logoSVG()}</div>
+      <div class="inv-logo">${logoMarkup(company)}</div>
       <div class="inv-head-text">
         <div class="inv-company-name">${companyNameLine}</div>
         <div class="inv-company-line">${escapeHTML(company.address)}</div>

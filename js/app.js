@@ -64,10 +64,10 @@ function initInvoiceTypeControls() {
 }
 
 function openTypeModal() {
-  document.getElementById("modal-invoice-type").hidden = false;
+  document.getElementById("modal-invoice-type").style.display = "flex";
 }
 function closeTypeModal() {
-  document.getElementById("modal-invoice-type").hidden = true;
+  document.getElementById("modal-invoice-type").style.display = "none";
 }
 
 function setInvoiceType(type) {
@@ -289,7 +289,7 @@ function initInvoiceActions() {
   });
 
   document.getElementById("btn-close-preview").addEventListener("click", () => {
-    document.getElementById("modal-preview").hidden = true;
+    document.getElementById("modal-preview").style.display = "none";
   });
   document.getElementById("btn-print").addEventListener("click", () => window.print());
 }
@@ -297,7 +297,7 @@ function initInvoiceActions() {
 function showPreview(company, customer, invoice) {
   const target = document.getElementById("invoice-render-target");
   target.innerHTML = renderInvoiceHTML({ company, customer, invoice });
-  document.getElementById("modal-preview").hidden = false;
+  document.getElementById("modal-preview").style.display = "flex";
 }
 
 /* ---------------------------------------------------
@@ -495,6 +495,35 @@ function initSettingsView() {
   ["set-inv-prefix", "set-inv-seq", "set-inv-padding"].forEach((id) =>
     document.getElementById(id).addEventListener("input", updateNumberingPreview)
   );
+
+  document.getElementById("set-logo").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const company = Store.getCompany();
+      company.logoDataUrl = reader.result;
+      Store.saveCompany(company);
+      renderLogoPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("btn-remove-logo").addEventListener("click", () => {
+    const company = Store.getCompany();
+    delete company.logoDataUrl;
+    Store.saveCompany(company);
+    document.getElementById("set-logo").value = "";
+    renderLogoPreview();
+  });
+}
+
+function renderLogoPreview() {
+  const wrap = document.getElementById("logo-preview-wrap");
+  const company = Store.getCompany();
+  wrap.innerHTML = company.logoDataUrl
+    ? `<img src="${company.logoDataUrl}" alt="logo preview" style="max-height:70px;max-width:160px;object-fit:contain;border:1px solid var(--line);border-radius:6px;padding:4px;">`
+    : `<span class="hint">No logo uploaded yet — a plain placeholder mark is used until you add one.</span>`;
 }
 
 function populateSettingsForm() {
@@ -513,6 +542,7 @@ function populateSettingsForm() {
   document.getElementById("set-sac").value = c.sac || "";
   document.getElementById("set-favour").value = c.favourOf || "";
   document.getElementById("set-notes").value = (c.notes || []).join("\n");
+  renderLogoPreview();
 
   const n = Store.getNumbering();
   document.getElementById("set-inv-prefix").value = n.prefix || "";
@@ -529,7 +559,9 @@ function updateNumberingPreview() {
 }
 
 function saveSettingsFromForm() {
+  const existing = Store.getCompany();
   const company = {
+    logoDataUrl: existing.logoDataUrl,
     name: document.getElementById("set-company-name").value.trim(),
     branchLabel: document.getElementById("set-branch-label").value.trim(),
     address: document.getElementById("set-address").value.trim(),
